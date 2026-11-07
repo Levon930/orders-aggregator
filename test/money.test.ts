@@ -13,6 +13,11 @@ describe("parseRub", () => {
     expect(() => parseRub(null)).toThrow();
     expect(() => parseRub(-1)).toThrow();
   });
+
+  it("отклоняет пустую строку", () => {
+    expect(() => parseRub("")).toThrow();
+    expect(() => parseRub("  ")).toThrow();
+  });
 });
 
 describe("toKop / fromKop", () => {
@@ -23,6 +28,20 @@ describe("toKop / fromKop", () => {
 
   it("отбрасывает доли копейки", () => {
     expect(toKop(10.999)).toBe(1099);
+  });
+
+  it("не теряет копейку из-за двоичного представления", () => {
+    expect(toKop(4723.9)).toBe(472390);
+    expect(toKop(1217.61)).toBe(121761);
+
+    const broken: number[] = [];
+    for (let kop = 0; kop <= 2_000_000; kop++) if (toKop(kop / 100) !== kop) broken.push(kop);
+    expect(broken).toEqual([]);
+  });
+
+  it("отклоняет сумму, которая не помещается в безопасное целое", () => {
+    expect(() => toKop(1e20)).toThrow();
+    expect(toKop(90_000_000_000_000)).toBe(9_000_000_000_000_000);
   });
 
   it("копейки в рубли", () => {

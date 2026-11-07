@@ -24,6 +24,21 @@ describe("tzOffsetMinutes", () => {
     expect(tzOffsetMinutes("Asia/Novosibirsk", at)).toBe(420);
     expect(tzOffsetMinutes("America/New_York", at)).toBe(-300);
   });
+
+  it("одна таймзона в разные моменты и несколько таймзон вперемешку", () => {
+    const winter = new Date("2026-03-29T00:59:00Z");
+    const summer = new Date("2026-03-29T01:00:00Z");
+    expect(tzOffsetMinutes("Europe/Berlin", winter)).toBe(60);
+    expect(tzOffsetMinutes("America/New_York", winter)).toBe(-240);
+    expect(tzOffsetMinutes("Europe/Berlin", summer)).toBe(120);
+    expect(tzOffsetMinutes("Europe/Berlin", winter)).toBe(60);
+  });
+
+  it("неизвестная таймзона — ошибка при каждом вызове", () => {
+    const at = new Date("2026-02-10T12:00:00Z");
+    expect(() => tzOffsetMinutes("Nope/Nope", at)).toThrow();
+    expect(() => tzOffsetMinutes("Nope/Nope", at)).toThrow();
+  });
 });
 
 describe("даты", () => {

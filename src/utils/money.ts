@@ -4,7 +4,7 @@
 
 /** Сумма из внешнего API: число или строка с числом ("250.10"). */
 export function parseRub(raw: unknown): number {
-  const value = typeof raw === "string" ? Number(raw.trim()) : raw;
+  const value = typeof raw === "string" && raw.trim() ? Number(raw) : raw;
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     throw new Error(`invalid amount: ${JSON.stringify(raw)}`);
   }
@@ -13,7 +13,9 @@ export function parseRub(raw: unknown): number {
 
 /** Рубли → копейки. Доли копейки отбрасываются: деньги клиенту не досчитываем. */
 export function toKop(rub: number): number {
-  return Math.floor(rub * 100);
+  const kop = Math.floor(Number((rub * 100).toPrecision(15)));
+  if (!Number.isSafeInteger(kop)) throw new Error(`invalid amount: ${rub}`);
+  return kop;
 }
 
 /** Копейки → рубли для ответа API. */

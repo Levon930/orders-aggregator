@@ -6,6 +6,9 @@ import type { CustomersService } from "./customers.js";
 export interface DailyTotal {
   date: string;
   total: number;
+  gross: number;
+  discount: number;
+  net: number;
 }
 
 const DAY = 86_400_000;
@@ -17,12 +20,11 @@ export class TotalsService {
   ) {}
 
   /**
-   * Сумма оплаченных заказов клиента по дням в его таймзоне, from..to включительно.
+   * Суммы оплаченных заказов клиента по дням в его таймзоне, from..to включительно.
    * Дни без оплат — с нулём.
    */
   async daily(customerId: string, from: string, to: string): Promise<DailyTotal[]> {
     const timezone = await this.customers.timezone(customerId);
-    const offset = tzOffsetMinutes(timezone, new Date());
 
     // Смещения таймзон в пределах ±14 ч: берём с запасом в сутки с каждой стороны
     const rows = await this.orders.paidCreatedBetween(
@@ -31,12 +33,19 @@ export class TotalsService {
       new Date(Date.parse(`${to}T00:00:00Z`) + 2 * DAY),
     );
 
-    const sums = new Map(datesBetween(from, to).map((d) => [d, 0]));
+    const sums = new Map(datesBetween(from, to).map((d) => [d, { gross: 0, net: 0 }]));
     for (const o of rows) {
-      const date = dateAtOffset(o.createdAt, offset);
-      const cur = sums.get(date);
-      if (cur !== undefined) sums.set(date, cur + o.amountKop);
+      const sum = sums.get(dateAtOffset(o.createdAt, tzOffsetMinutes(timezone, o.createdAt)));
+      if (!sum) continue;
+      sum.gross += o.amountKop;
+      sum.net += o.amountPaidKop ?? o.amountKop;
     }
-    return [...sums].map(([date, kop]) => ({ date, total: fromKop(kop) }));
+    return [...sums].map(([date, { gross, net }]) => ({
+      date,
+      total: fromKop(gross),
+      gross: fromKop(gross),
+      discount: fromKop(gross - net),
+      net: fromKop(net),
+    }));
   }
 }
